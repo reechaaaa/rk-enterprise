@@ -8,6 +8,7 @@ import { Mail, Phone, MapPin } from "lucide-react";
 
 const Contact = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -15,37 +16,60 @@ const Contact = () => {
     message: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Single handleSubmit function (Google Form integration)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
+
     if (!formData.name || !formData.email || !formData.phone || !formData.message) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We'll get back to you soon.",
-    });
+    setLoading(true);
 
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      message: ""
-    });
+    try {
+      // ✅ Replace with your Google Form POST URL
+      const formURL =
+        "https://docs.google.com/forms/d/e/1FAIpQLSeSWa8EMf5zl7vGddTb-mt7T1gssCJ6r9Qah7t0ZtbFvYIuhA/formResponse";
+
+      const formBody = new URLSearchParams();
+      formBody.append("entry.1653629278", formData.name);
+      formBody.append("entry.819945036", formData.email);
+      formBody.append("entry.1823287760", formData.phone);
+      formBody.append("entry.1826648574", formData.message);
+
+      await fetch(formURL, {
+        method: "POST",
+        body: formBody,
+        mode: "no-cors",
+      });
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We'll get back to you soon.",
+      });
+
+      setFormData({ name: "", email: "", phone: "", message: "" });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast({
+        title: "Error",
+        description: "There was an issue submitting your message. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -64,7 +88,7 @@ const Contact = () => {
             <div>
               <h3 className="text-2xl font-semibold mb-6">Get In Touch</h3>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                Have questions about our products or services? We're here to help. 
+                Have questions about our products or services? We're here to help.
                 Reach out to us through any of the channels below or fill out the form.
               </p>
             </div>
@@ -77,8 +101,8 @@ const Contact = () => {
                 <div>
                   <h4 className="font-semibold mb-1">Address</h4>
                   <p className="text-muted-foreground">
-                    123 Industrial Avenue<br />
-                    Business District, City - 400001
+                    D.B. road, Naya Bazar, Jugsalai<br />
+                    Jamshedpur, Jharkhand - 831006
                   </p>
                 </div>
               </div>
@@ -89,10 +113,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Phone</h4>
-                  <p className="text-muted-foreground">
-                    +91 98765 43210<br />
-                    +91 98765 43211
-                  </p>
+                  <p className="text-muted-foreground">+91 9234607632</p>
                 </div>
               </div>
 
@@ -103,8 +124,7 @@ const Contact = () => {
                 <div>
                   <h4 className="font-semibold mb-1">Email</h4>
                   <p className="text-muted-foreground">
-                    info@rkenterprises.com<br />
-                    sales@rkenterprises.com
+                    rke2233ts@gmail.com
                   </p>
                 </div>
               </div>
@@ -178,14 +198,14 @@ const Contact = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Send Message
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </div>
         </div>
 
-        {/* Google Map */}
+        {/* Google Map
         <div className="mt-16 max-w-6xl mx-auto">
           <div className="w-full h-[400px] rounded-lg overflow-hidden border shadow-sm">
             <iframe
@@ -199,7 +219,7 @@ const Contact = () => {
               title="RK Enterprises Location"
             />
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

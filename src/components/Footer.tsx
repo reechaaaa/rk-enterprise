@@ -18,7 +18,14 @@ const Footer = () => {
           <div>
             <h3 className="text-xl font-bold text-primary mb-4">RK Enterprises</h3>
             <p className="text-muted-foreground leading-relaxed">
-              Your trusted partner for quality industrial hardware, pipes, fittings, and valves.
+              Enquiry at 
+              <br />
+              <a
+                href="mailto:rke2233ts@gmail.com"
+                className="hover:text-primary transition-colors"
+               >
+                  rke2233ts@gmail.com
+               </a>
             </p>
           </div>
 
@@ -78,22 +85,34 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-muted-foreground">
                 <MapPin className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">123 Industrial Avenue, City - 400001</span>
+                <span className="text-sm">D.B. Road, Naya Bazar, Jugsalai, Jamshedpur, Jharkhand - 831006</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Phone className="h-5 w-5 flex-shrink-0" />
-                <span className="text-sm">+91 98765 43210</span>
+                <a 
+                    href="tel:+919234607632" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                    +91 9234607632
+                </a>
+                
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Mail className="h-5 w-5 flex-shrink-0" />
-                <span className="text-sm">info@rkenterprises.com</span>
+                <a 
+                    href="mailto:rke2233ts@gmail.com"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                    rke2233ts@gmail.com
+                </a>
+                
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {currentYear} RK Enterprises. All rights reserved.</p>
+          <p>&copy; {2025} RK Enterprises. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -142,7 +142,7 @@ const Contact = () => {
 
           {/* Contact Form */}
           <div className="bg-card p-8 rounded-lg border shadow-sm">
-            <h3 className="text-2xl font-semibold mb-6">Send Us a Message</h3>
+            <h3 className="text-2xl font-semibold mb-6">Inquiry</h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="name">Name *</Label>
@@ -186,7 +186,7 @@ const Contact = () => {
               </div>
 
               <div>
-                <Label htmlFor="message">Message *</Label>
+                <Label htmlFor="message">Product you want to inquire about *</Label>
                 <Textarea
                   id="message"
                   name="message"

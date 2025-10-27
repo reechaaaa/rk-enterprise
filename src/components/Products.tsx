@@ -188,7 +188,7 @@ const Products: React.FC = () => {
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            // REMOVED: window.scrollTo({ top: 0, behavior: "smooth" }); <--- THIS FIXES THE JUMP
         }
     };
     
@@ -226,12 +226,11 @@ const Products: React.FC = () => {
         <section id="products" className="py-20 bg-background">
             <div className="container mx-auto px-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-6 text-primary-dark">
-                    ZOLOTO Valves Price List
+                    Products Price List
                 </h2>
                 <div className="w-20 h-1 bg-primary mx-auto mb-4"></div>
                 <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-                    Explore our Maximum Retail Price list, effective Dt. 25.08.2025.
-                    Prices are inclusive of 18% GST and F.O.R Jalandhar.
+                    Pipes & Fittings, Valves.
                 </p>
 
                 {/* Filter and Search Bar */}

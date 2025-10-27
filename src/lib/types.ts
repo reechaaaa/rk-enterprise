@@ -1,33 +1,31 @@
+import { Download } from "lucide-react";
+
 // src/lib/types.ts
 
-// The GvizResponse and gvizResponseToRows utility functions are necessary for client-side fetching.
-// Since we don't have the external files (gvizService.ts, dataMapping.ts), we include the core logic here.
-
-export type Availability = "In Stock" | "Low Stock" | "Out of Stock";
+export type Availability = "In Stock" | "Out of Stock";
 
 export interface ValveProduct {
   id: string; 
   artNo: string;
   name: string;
-  companyName: string; // <-- RENAMED: Use for filtering by company/brand
+  companyName: string; 
   material: string;
   connection: string;
   hsnCode: string;
-  sizeInches: string;
-  sizeMM: number;
-  price: number;
+  // Removed sizeInches, sizeMM, and price
+  pdfLink: string; 
   certification: string[];
   keyFeatures: string[];
   stock: number;
   availability: Availability;
-  imageUrl?: string; 
+  // Removed imageUrl
   raw?: Record<string, any>;
 }
 
 // ----------------------------------------------------------------------
 // GVIZ UTILITIES (Client-Side Sheet Data Conversion)
 // ----------------------------------------------------------------------
-// ... (parseGvizText and gvizResponseToRows remain the same)
+
 interface GvizResponse {
   version: string;
   reqId: string;
@@ -76,7 +74,7 @@ export const gvizResponseToRows = (
 
 
 // ----------------------------------------------------------------------
-// ZOLOTO Mapping (Updated for Company Name)
+// ZOLOTO Mapping (Final Version)
 // ----------------------------------------------------------------------
 
 const parseNumber = (val: any, fallback = 0) => {
@@ -86,10 +84,13 @@ const parseNumber = (val: any, fallback = 0) => {
     return Number.isFinite(n) ? n : fallback;
 };
 
-const getAvailability = (stock: number): Availability => {
-    if (stock > 20) return "In Stock";
-    if (stock > 0) return "Low Stock";
-    return "Out of Stock";
+// SIMPLIFIED CHANGE: Only checks for 'In Stock' or defaults to 'Out of Stock'
+const mapAvailability = (value: string | undefined): Availability => {
+    const status = (value || "").toLowerCase().trim();
+    if (status.includes("in")) return "In Stock";
+    
+    // Default to Out of Stock if no recognized 'in' text is provided
+    return "Out of Stock"; 
 };
 
 // Simple utility to find a header, allowing for various spellings
@@ -103,33 +104,45 @@ const getCellValue = (row: Record<string, any>, candidates: string[]): string | 
     return undefined;
 };
 
+// Base URL for the TDR PDF download endpoint
+const TDR_BASE_URL = 'https://www.zolotovalves.com/wp-content/themes/zolotovalves/generatepdf.php';
+
 
 // Main mapping function to convert raw sheet rows into structured ValveProduct objects
 export function mapZolotoRowsToProducts(rows: Record<string, any>[]): ValveProduct[] {
   const products: ValveProduct[] = [];
-  const uniqueIdCheck = new Set<string>();
+  const uniqueArtNos = new Set<string>();
 
   for (const row of rows) {
     // IMPORTANT: Keys must match the exact column headers from your Google Sheet
     const artNo = getCellValue(row, ["Art. No.", "ArtNo", "Article"]) || "";
     const productName = getCellValue(row, ["Product", "Name", "Valve Name"]) || "";
-    const sizeInches = getCellValue(row, ["Inches", "Size Inches"]) || "";
-    const sizeMM = parseNumber(getCellValue(row, ["mm", "Size MM"]));
-    const price = parseNumber(getCellValue(row, ["Price/Piece", "Price"]));
+    // Removed sizeInches, sizeMM, and the Price/Piece column retrieval
     const hsnCode = getCellValue(row, ["HSN Code", "HSN"]) || "";
-    const imageUrl = getCellValue(row, ["Image URL", "Image", "img"]) || undefined; 
     
-    // NEW: Extract Company/Brand Name. Assuming a header like 'Company' or 'Brand'
-    // If not found, default to 'ZOLOTO' as per your initial data.
+    // Extract Company Name
     const companyName = getCellValue(row, ["Company", "Brand", "Manufacturer Name"]) || "ZOLOTO";
     
-    // Skip if core data is missing
-    if (!productName || !sizeInches || !artNo) continue;
+    // Extract Stock & Status
+    const stock = parseNumber(getCellValue(row, ["Stock", "Quantity"])) || 0;
+    const statusText = getCellValue(row, ["Availability", "Stock Status", "Status"]); 
+    const availability = mapAvailability(statusText);
     
-    // Create a stable unique ID
-    const id = `${artNo}-${sizeInches.replace(/[/$]/g, '')}-${sizeMM}`;
-    if (uniqueIdCheck.has(id)) continue; 
-    uniqueIdCheck.add(id);
+    // Extract Certification/Flange data
+    const certFlangeRaw = getCellValue(row, ["Certification/Flange", "Flange"]) || "";
+
+
+    // Skip if core data or ArtNo is missing
+    if (!productName || !artNo) continue;
+    
+    // CONSOLIDATION CHECK: Only process unique Art. Nos. (ignoring size variants)
+    if (uniqueArtNos.has(artNo)) continue;
+    uniqueArtNos.add(artNo);
+
+
+    // CONSTRUCT PDF LINK
+    // We use the ArtNo to create the TDR link
+    const pdfLink = `${TDR_BASE_URL}?pid=${artNo}`;
 
     // --- Deriving Material, Connection, and Features from Product Name/Notes ---
     const nameLower = productName.toLowerCase();
@@ -147,41 +160,33 @@ export function mapZolotoRowsToProducts(rows: Record<string, any>[]): ValveProdu
     else if (nameLower.includes("wafer type")) connection = "Wafer Type";
     
     let keyFeatures: string[] = [];
-    if (nameLower.includes("bs 10 table 'd'")) keyFeatures.push("Flanged Ends to BS 10 Table 'D'");
-    if (nameLower.includes("bs 10 table 'f'")) keyFeatures.push("Flanged Ends to BS 10 Table 'F'");
-    if (nameLower.includes("is 778")) keyFeatures.push("Flanged Ends to IS 778");
-    if (nameLower.includes("is 1538")) keyFeatures.push("Flanged Ends to IS 1538");
-    if (nameLower.includes("ibr")) keyFeatures.push("I.B.R. Certified");
-    if (nameLower.includes("pn ")) {
-        const match = productName.match(/PN\s*(\d+(\.\d+)?)/i);
-        if (match) keyFeatures.push(`Pressure Nominal: PN ${match[1]}`);
-    }
+    if (certFlangeRaw && certFlangeRaw !== '-') keyFeatures.push(certFlangeRaw); // Use new column data
 
     const certification = keyFeatures.filter(f => 
         f.includes('Certified') || 
         f.includes('IS') || 
         f.includes('BS')
     );
+    
+    // Set a unique product ID based on the Art. No. for React keys
+    const id = artNo;
 
-    // Mock Stock/Availability
-    const stock = 100; 
 
     products.push({
       id,
       artNo,
       name: productName,
-      companyName, // <-- Mapped company name
+      companyName,
       material,
       connection,
       hsnCode,
-      sizeInches,
-      sizeMM,
-      price,
+      // Removed sizeInches, sizeMM, price from final object
+      pdfLink, 
       certification,
       keyFeatures,
       stock,
-      availability: getAvailability(stock),
-      imageUrl, 
+      availability, 
+      // Removed imageUrl from final object
       raw: row,
     });
   }

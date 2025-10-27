@@ -46,15 +46,26 @@ const Products: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     // Filter States
-    const [searchTerm, setSearchTerm] = useState("");
-    const [connectionFilter, setConnectionFilter] = useState("all");
-    const [materialFilter, setMaterialFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState(""); // Input field state
+    const [searchTerm, setSearchTerm] = useState(""); // Debounced search term for filtering
     const [companyFilter, setCompanyFilter] = useState("all"); 
     const [sortOrder, setSortOrder] = useState("name-asc");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [currentPage, setCurrentPage] = useState(1);
     
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+    // --- FIX: Handle Search Function Definition ---
+    // This function must be defined inside the component scope before being used in JSX callbacks.
+    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent<HTMLButtonElement>) => {
+        // Check if event is a keyboard event and key is not Enter
+        if ('key' in e && e.key !== 'Enter') return;
+        
+        // Only set the filter search term when the button is clicked or Enter is pressed
+        setSearchTerm(searchQuery);
+    };
+    // ---------------------------------------------
+
 
     // --- Data Fetching Logic (CSV Parser) ---
     const fetchZolotoData = useCallback(async () => {
@@ -97,7 +108,7 @@ const Products: React.FC = () => {
             if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
                  setError(`Failed to fetch data due to CORS block. Please verify 'File > Share > Publish to web' in your Google Sheet.`);
             } else {
-                 setError(`Failed to process data: ${errorMessage}. Check that your Google Sheet column headers match: 'Art. No.', 'Product', 'Inches', 'mm', 'Price/Piece', 'HSN Code', and 'Company'.`);
+                 setError(`Failed to process data: ${errorMessage}. Check that your Google Sheet column headers match: 'Art. No.', 'Product', 'Company', etc.`);
             }
             
             console.error("Error fetching ZOLOTO data:", err);
@@ -112,18 +123,12 @@ const Products: React.FC = () => {
     }, [fetchZolotoData]);
 
     // This logic runs on the client after data is fetched.
-    const { uniqueConnections, uniqueMaterials, uniqueCompanies } = useMemo(() => {
-        const connections = new Set<string>();
-        const materials = new Set<string>();
+    const { uniqueCompanies } = useMemo(() => {
         const companies = new Set<string>();
         for (const p of products) {
-            if (p.connection) connections.add(p.connection);
-            if (p.material) materials.add(p.material);
             if (p.companyName) companies.add(p.companyName);
         }
         return {
-            uniqueConnections: Array.from(connections).sort(),
-            uniqueMaterials: Array.from(materials).sort(),
             uniqueCompanies: Array.from(companies).sort(),
         };
     }, [products]);
@@ -135,34 +140,23 @@ const Products: React.FC = () => {
         const filtered = products.filter((p) => {
             const name = p.name.toLowerCase();
             const artNo = p.artNo.toLowerCase();
-            const material = p.material.toLowerCase();
             const company = p.companyName.toLowerCase();
 
             const matchesSearch =
                 !searchLower ||
                 name.includes(searchLower) ||
                 artNo.includes(searchLower) ||
-                material.includes(searchLower) ||
                 company.includes(searchLower);
 
-            const matchesConnection =
-                connectionFilter === "all" || p.connection === connectionFilter;
-                
-            const matchesMaterial =
-                materialFilter === "all" || p.material === materialFilter;
-                
             const matchesCompany =
                 companyFilter === "all" || p.companyName === companyFilter;
 
-            return matchesSearch && matchesConnection && matchesMaterial && matchesCompany;
+            // Removed material and connection filtering logic
+            return matchesSearch && matchesCompany;
         });
 
         const sorted = filtered.sort((a, b) => {
             switch (sortOrder) {
-                case "price-asc":
-                    return a.price - b.price;
-                case "price-desc":
-                    return b.price - a.price;
                 case "artno-asc":
                     return a.artNo.localeCompare(b.artNo);
                 case "artno-desc":
@@ -172,12 +166,12 @@ const Products: React.FC = () => {
             }
         });
         return sorted;
-    }, [products, debouncedSearchTerm, connectionFilter, materialFilter, companyFilter, sortOrder]);
+    }, [products, debouncedSearchTerm, companyFilter, sortOrder]); // Removed connectionFilter, materialFilter
 
     // Reset pagination on filter/sort change
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm, connectionFilter, materialFilter, companyFilter, sortOrder]);
+    }, [debouncedSearchTerm, companyFilter, sortOrder]); // Removed connectionFilter, materialFilter
 
     const totalPages = Math.max(1, Math.ceil(filteredAndSortedProducts.length / ITEMS_PER_PAGE));
     const paginatedProducts = useMemo(() => {
@@ -188,14 +182,12 @@ const Products: React.FC = () => {
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
-            // REMOVED: window.scrollTo({ top: 0, behavior: "smooth" }); <--- THIS FIXES THE JUMP
         }
     };
     
     const resetFilters = () => {
-        setSearchTerm("");
-        setConnectionFilter("all");
-        setMaterialFilter("all");
+        setSearchQuery(""); // Reset input field
+        setSearchTerm(""); // Reset applied search term
         setCompanyFilter("all");
         setSortOrder("name-asc");
         setCurrentPage(1);
@@ -235,18 +227,30 @@ const Products: React.FC = () => {
 
                 {/* Filter and Search Bar */}
                 <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end"> 
-                        {/* Search Bar */}
-                        <div className="relative col-span-1 md:col-span-2 lg:col-span-2"> 
-                            <label htmlFor="search" className="block text-sm font-medium text-gray-700">Search by Art. No., Valve Type, or Material</label>
-                            <input
-                                type="text"
-                                id="search"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="e.g., Globe Valve, 1001, Bronze..."
-                                className="pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary w-full"
-                            />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 items-end"> 
+                        
+                        {/* Search Bar and Button (Combined) */}
+                        <div className="relative col-span-1 sm:col-span-2"> 
+                            <label htmlFor="search" className="block text-sm font-medium text-gray-700">
+                                Search by Art. No. or Product Name
+                            </label>
+                            <div className="flex">
+                                <input
+                                    type="text"
+                                    id="search"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyUp={handleSearch}
+                                    placeholder="e.g., Globe Valve, 1001, Bronze..."
+                                    className="pl-3 pr-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:ring-primary focus:border-primary w-full"
+                                />
+                                <button
+                                    onClick={handleSearch}
+                                    className="px-4 py-2 bg-primary text-white font-medium rounded-r-md hover:bg-primary/90 transition-colors"
+                                >
+                                    Search
+                                </button>
+                            </div>
                         </div>
 
                         {/* Company Filter */}
@@ -265,37 +269,22 @@ const Products: React.FC = () => {
                             </select>
                         </div>
                         
-                        {/* Connection Filter */}
+                        {/* Sort Dropdown */}
                         <div>
-                            <label htmlFor="connection" className="block text-sm font-medium text-gray-700">End Connection</label>
+                            <label htmlFor="sort" className="block text-sm font-medium text-gray-700">Sort By</label>
                             <select
-                                id="connection"
-                                value={connectionFilter}
-                                onChange={(e) => setConnectionFilter(e.target.value)}
+                                id="sort"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
                                 className="w-full mt-1 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"
                             >
-                                <option value="all">All Connections</option>
-                                {uniqueConnections.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
+                                <option value="name-asc">Valve Name (A–Z)</option>
+                                {/* REMOVED PRICE SORT OPTIONS */}
+                                <option value="artno-asc">Art. No. (Asc)</option>
+                                <option value="artno-desc">Art. No. (Desc)</option>
                             </select>
                         </div>
 
-                        {/* Material Filter */}
-                        <div>
-                            <label htmlFor="material" className="block text-sm font-medium text-gray-700">Material</label>
-                            <select
-                                id="material"
-                                value={materialFilter}
-                                onChange={(e) => setMaterialFilter(e.target.value)}
-                                className="w-full mt-1 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"
-                            >
-                                <option value="all">All Materials</option>
-                                {uniqueMaterials.map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -310,18 +299,6 @@ const Products: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <select
-                                id="sort"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                                className="py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"
-                            >
-                                <option value="name-asc">Valve Name (A–Z)</option>
-                                <option value="price-asc">Price: Low → High</option>
-                                <option value="price-desc">Price: High → Low</option>
-                                <option value="artno-asc">Art. No. (Asc)</option>
-                            </select>
-
                             {/* View Mode Toggle */}
                             <div className="flex items-center space-x-2">
                                 <button onClick={() => setViewMode("grid")} className={`p-2 rounded-md ${viewMode === "grid" ? "bg-primary text-white" : "bg-white"}`} aria-label="Grid View"><LayoutGrid size={18} /></button>
@@ -331,11 +308,12 @@ const Products: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Results Summary and View Toggle (kept separate for layout) */}
+                {/* Results Summary */}
                 <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-slate-600">
                         Showing <strong>{paginatedProducts.length}</strong> of{" "}
                         <strong>{filteredAndSortedProducts.length}</strong> results
+                        {searchTerm && <span className="ml-2 text-slate-400">for "{searchTerm}"</span>}
                     </p>
                 </div>
 
@@ -418,7 +396,7 @@ const Products: React.FC = () => {
                 {!loading && !error && filteredAndSortedProducts.length === 0 && (
                     <div className="text-center py-10">
                         <p className="text-sm text-slate-600 mb-4">
-                            No ZOLOTO products matched your current filters.
+                            No products matched your current filters or search term.
                         </p>
                         <button onClick={resetFilters} className="px-4 py-2 bg-primary text-white rounded-md">
                             Clear filters

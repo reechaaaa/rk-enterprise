@@ -1,44 +1,32 @@
-import React, { useMemo, useState } from "react";
-// Removed Link import since we don't want navigation
-// import { Link } from "react-router-dom"; 
-// Removed Component, Tag, Factory, Wrench icons since they were used in the now-removed Link blocks
-import { AlertTriangle, CheckCircle } from "lucide-react"; 
-import { ValveProduct } from "../lib/types"; // CORRECTED IMPORT PATH
+import React, { useMemo } from "react";
+import { AlertTriangle, CheckCircle, Download } from "lucide-react"; 
+import { ValveProduct } from "../lib/types"; // Import from local lib
 
 interface ProductCardProps {
   product: ValveProduct; // Use ValveProduct type
   view: "grid" | "list";
   searchHighlight?: string;
-  // Removed onQuickView and onToggleFavorite props since they are no longer used
+  // Removed onQuickView, onToggleFavorite, isFavorite, as they are no longer used
 }
 
 const baseBadgeClasses = "text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full inline-flex items-center";
 const safe = (v: any) => (v === null || v === undefined ? "" : String(v));
-const currency = (n = 0) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 2,
-  }).format(n);
 
-// Simplified AvailabilityBadge
-const AvailabilityBadge: React.FC<{ availability?: ValveProduct["availability"] | string | number; }> = ({ availability }) => {
-    if (typeof availability === "number") {
-        if (availability > 10) {
-            return (<span className={`bg-green-100 text-green-800 ${baseBadgeClasses}`}><CheckCircle className="w-3 h-3 mr-1" />In Stock</span>);
-        }
-        if (availability > 0) {
-            return (<span className={`bg-yellow-100 text-yellow-800 ${baseBadgeClasses}`}><AlertTriangle className="w-3 h-3 mr-1" />Low Stock</span>);
-        }
-        return (<span className={`bg-red-100 text-red-800 ${baseBadgeClasses}`}><AlertTriangle className="w-3 h-3 mr-1" />Out of Stock</span>);
-    }
+// --- MODIFIED AVAILABILITY BADGE ---
+// Now only displays a badge if the product is explicitly "In Stock".
+const AvailabilityBadge: React.FC<{ availability?: string }> = ({ availability }) => {
     const v = (availability || "").toString().toLowerCase();
+
+    // Check for In Stock (based on "in" being present)
     if (v.includes("in"))
         return (<span className={`bg-green-100 text-green-800 ${baseBadgeClasses}`}><CheckCircle className="w-3 h-3 mr-1" />In Stock</span>);
-    if (v.includes("low") || v.includes("few"))
-        return (<span className={`bg-yellow-100 text-yellow-800 ${baseBadgeClasses}`}><AlertTriangle className="w-3 h-3 mr-1" />Low Stock</span>);
-    return (<span className={`bg-red-100 text-red-800 ${baseBadgeClasses}`}><AlertTriangle className="w-3 h-3 mr-1" />Out of Stock</span>);
+    
+    // Returns null (no badge) if not explicitly 'In Stock'
+    return null;
 };
+// -------------------------------------
+
+// Highlight function (kept simplified)
 function highlight(text: string, query?: string) { 
     if (!query) return text;
     const q = query.trim();
@@ -59,26 +47,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product,
   view,
   searchHighlight,
-  // Removed unused props: onQuickView, onToggleFavorite, isFavorite
 }) => {
-  // Removed image state and memo since we don't display images
-  // const [imgError, setImgError] = useState(false);
-
-  const price = product.price;
-  
-  // NOTE: detailUrl is no longer used, as we removed the Link component.
-  // const detailUrl = `/products/${product.id}`; 
-  
-  // Removed handleQuickView and Link components
-  
+  // Removed image, price, size logic
   const DisplayName = searchHighlight 
     ? highlight(product.name, searchHighlight) 
     : product.name;
     
-  const DisplaySize = `${product.sizeInches}" (${product.sizeMM} mm)`;
-
   if (view === "list") {
-    // List view adapted to remove image column and link wrapping
     return (
       <article className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden flex w-full p-4">
         
@@ -92,40 +67,40 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   {DisplayName}
                 </h3>
                 <p className="text-sm text-subtle truncate">
-                  {/* Company Name */}
+                  {/* Company Name / Material */}
                   {product.companyName}
                   {product.material && ` • ${product.material}`}
                 </p>
               </div>
 
-              {/* Price and Availability */}
+              {/* HSN CODE (Primary Detail) */}
               <div className="flex flex-col items-end space-y-2 flex-shrink-0">
-                <div className="text-2xl font-bold text-text">
-                    {currency(price)}
-                </div>
-                <AvailabilityBadge availability={product.availability ?? product.stock} />
+                {product.hsnCode && (
+                    <span className="text-sm text-slate-600 font-semibold px-3 py-2">
+                        HSN: {product.hsnCode}
+                    </span>
+                )}
+                {/* Badge now only appears if In Stock */}
+                <AvailabilityBadge availability={product.availability} /> 
               </div>
             </div>
 
             <div className="mt-3 flex gap-2 flex-wrap items-center">
-              {product.sizeInches && (
-                <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                  {DisplaySize}
-                </span>
-              )}
+              
               {product.connection && (
                 <span className="text-xs bg-slate-100 px-2 py-1 rounded">
                   {product.connection}
                 </span>
               )}
-              {product.hsnCode && (
-                <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                  HSN: {product.hsnCode}
-                </span>
-              )}
+              {/* Removed HSN Code chip here */}
                {product.artNo && (
                 <span className="text-xs bg-slate-100 px-2 py-1 rounded">
                   Art. No: {product.artNo}
+                </span>
+              )}
+               {product.certification.length > 0 && product.certification[0] !== '-' && (
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  {product.certification[0]}
                 </span>
               )}
             </div>
@@ -135,7 +110,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     );
   }
 
-  // grid view adapted to remove image and link wrapping
+  // grid view 
   return (
     <article className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col">
       
@@ -155,19 +130,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </h3>
           <p
             className="text-sm text-subtle truncate"
-            title={DisplaySize}
+            title={product.material}
           >
             {product.material} ({product.connection})
           </p>
         </div>
 
         <div className="flex items-center justify-between mt-4">
-          <div className="text-xl font-bold text-text">
-            {currency(price)}
-          </div>
+          {/* HSN CODE (Primary Detail) */}
+          <span className="text-sm text-slate-600 font-semibold">
+             HSN: {product.hsnCode}
+          </span>
           
           <div className="flex flex-col items-end space-y-1">
-             <AvailabilityBadge availability={product.availability ?? product.stock} />
+             {/* Badge now only appears if In Stock */}
+             <AvailabilityBadge availability={product.availability} />
              {product.artNo && (
                 <span className="text-xs text-slate-500">Art. No: {product.artNo}</span>
              )}

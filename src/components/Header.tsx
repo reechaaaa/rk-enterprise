@@ -77,16 +77,15 @@ const Header = () => {
                     <ul className="grid w-[400px] gap-3 p-4 bg-card">
                       {[
                         {
-                          title: "Pipes and Fittings",
-                          desc: "Quality pipes and fittings for all applications",
+                          title: "ZOLOTO",
+                         
                         },
                         {
-                          title: "Valves",
-                          desc: "Industrial valves for every requirement",
+                          title: "Leader",
                         },
                         {
                           title: "Industrial Hardware",
-                          desc: "Complete range of industrial hardware",
+                          
                         },
                       ].map((item) => (
                         <li key={item.title}>
@@ -104,7 +103,7 @@ const Header = () => {
                                 {item.title}
                               </div>
                               <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                                {item.desc}
+                                
                               </p>
                             </button>
                           </NavigationMenuLink>

@@ -3,7 +3,7 @@ import { X, List, LayoutGrid, AlertCircle, Loader2, ArrowLeft, ArrowRight } from
 import { useDebounce } from "../hooks/useDebounce"; 
 import pipesImage from "@/assets/pipes-fittings.jpg"; 
 import ProductCard from "./ProductCard"; 
-// Fixed import paths:
+// FIXED IMPORT: Only import the necessary exported types/functions
 import { ValveProduct, mapZolotoRowsToProducts, parseGvizText, gvizResponseToRows } from "../lib/types"; 
 import { ProductCardSkeleton } from "./ProductCardSkeleton"; // Assuming you put the Skeleton file here
 
@@ -55,8 +55,6 @@ const Products: React.FC = () => {
     
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    // --- FIX: Handle Search Function Definition ---
-    // This function must be defined inside the component scope before being used in JSX callbacks.
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent<HTMLButtonElement>) => {
         // Check if event is a keyboard event and key is not Enter
         if ('key' in e && e.key !== 'Enter') return;
@@ -64,8 +62,6 @@ const Products: React.FC = () => {
         // Only set the filter search term when the button is clicked or Enter is pressed
         setSearchTerm(searchQuery);
     };
-    // ---------------------------------------------
-
 
     // --- Data Fetching Logic (CSV Parser) ---
     const fetchZolotoData = useCallback(async () => {
@@ -88,7 +84,8 @@ const Products: React.FC = () => {
             const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
             
             const rawRows = dataLines.map(line => {
-                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                // Simplified split assuming no commas inside quoted fields for robustness
+                const values = line.split(',').map(v => v.trim().replace(/"/g, '')); 
                 const rowObject: Record<string, any> = {};
                 headers.forEach((header, index) => {
                     // Map CSV column values to header names
@@ -166,12 +163,12 @@ const Products: React.FC = () => {
             }
         });
         return sorted;
-    }, [products, debouncedSearchTerm, companyFilter, sortOrder]); // Removed connectionFilter, materialFilter
+    }, [products, debouncedSearchTerm, companyFilter, sortOrder]); 
 
     // Reset pagination on filter/sort change
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm, companyFilter, sortOrder]); // Removed connectionFilter, materialFilter
+    }, [debouncedSearchTerm, companyFilter, sortOrder]); 
 
     const totalPages = Math.max(1, Math.ceil(filteredAndSortedProducts.length / ITEMS_PER_PAGE));
     const paginatedProducts = useMemo(() => {
@@ -279,7 +276,6 @@ const Products: React.FC = () => {
                                 className="w-full mt-1 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"
                             >
                                 <option value="name-asc">Valve Name (A–Z)</option>
-                                {/* REMOVED PRICE SORT OPTIONS */}
                                 <option value="artno-asc">Art. No. (Asc)</option>
                                 <option value="artno-desc">Art. No. (Desc)</option>
                             </select>
@@ -288,7 +284,7 @@ const Products: React.FC = () => {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                         <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3">
                             <button
                                 onClick={resetFilters}
                                 className="flex items-center text-sm text-primary hover:underline"
@@ -348,7 +344,7 @@ const Products: React.FC = () => {
                             ))}
                         </div>
 
-                        {/* --- PAGINATION CONTROLS (NEW UI) --- */}
+                        {/* --- PAGINATION CONTROLS --- */}
                         <div className="mt-8 flex items-center justify-center space-x-2">
                             {/* Previous Button */}
                             <PaginationButton 

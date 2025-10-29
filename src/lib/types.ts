@@ -1,5 +1,3 @@
-import { Download } from "lucide-react";
-
 // src/lib/types.ts
 
 export type Availability = "In Stock" | "Out of Stock";
@@ -12,18 +10,16 @@ export interface ValveProduct {
   material: string;
   connection: string;
   hsnCode: string;
-  // Removed sizeInches, sizeMM, and price
-  pdfLink: string; 
+  tdrLink: string; // Updated from pdfLink
   certification: string[];
   keyFeatures: string[];
   stock: number;
   availability: Availability;
-  // Removed imageUrl
   raw?: Record<string, any>;
 }
 
 // ----------------------------------------------------------------------
-// GVIZ UTILITIES (Client-Side Sheet Data Conversion)
+// GVIZ UTILITIES (Must be exported to be used in Products.tsx if GVIZ logic is used)
 // ----------------------------------------------------------------------
 
 interface GvizResponse {
@@ -74,7 +70,7 @@ export const gvizResponseToRows = (
 
 
 // ----------------------------------------------------------------------
-// ZOLOTO Mapping (Final Version)
+// ZOLOTO Mapping Utilities (Internal Helpers - NOT exported)
 // ----------------------------------------------------------------------
 
 const parseNumber = (val: any, fallback = 0) => {
@@ -84,16 +80,13 @@ const parseNumber = (val: any, fallback = 0) => {
     return Number.isFinite(n) ? n : fallback;
 };
 
-// SIMPLIFIED CHANGE: Only checks for 'In Stock' or defaults to 'Out of Stock'
 const mapAvailability = (value: string | undefined): Availability => {
     const status = (value || "").toLowerCase().trim();
     if (status.includes("in")) return "In Stock";
     
-    // Default to Out of Stock if no recognized 'in' text is provided
     return "Out of Stock"; 
 };
 
-// Simple utility to find a header, allowing for various spellings
 const getCellValue = (row: Record<string, any>, candidates: string[]): string | undefined => {
     const rowKeys = Object.keys(row);
     for (const key of rowKeys) {
@@ -109,42 +102,36 @@ const TDR_BASE_URL = 'https://www.zolotovalves.com/wp-content/themes/zolotovalve
 
 
 // Main mapping function to convert raw sheet rows into structured ValveProduct objects
+// This function IS exported as it is used by Products.tsx
 export function mapZolotoRowsToProducts(rows: Record<string, any>[]): ValveProduct[] {
   const products: ValveProduct[] = [];
   const uniqueArtNos = new Set<string>();
 
   for (const row of rows) {
-    // IMPORTANT: Keys must match the exact column headers from your Google Sheet
     const artNo = getCellValue(row, ["Art. No.", "ArtNo", "Article"]) || "";
     const productName = getCellValue(row, ["Product", "Name", "Valve Name"]) || "";
-    // Removed sizeInches, sizeMM, and the Price/Piece column retrieval
     const hsnCode = getCellValue(row, ["HSN Code", "HSN"]) || "";
     
-    // Extract Company Name
     const companyName = getCellValue(row, ["Company", "Brand", "Manufacturer Name"]) || "ZOLOTO";
     
-    // Extract Stock & Status
     const stock = parseNumber(getCellValue(row, ["Stock", "Quantity"])) || 0;
     const statusText = getCellValue(row, ["Availability", "Stock Status", "Status"]); 
     const availability = mapAvailability(statusText);
     
-    // Extract Certification/Flange data
     const certFlangeRaw = getCellValue(row, ["Certification/Flange", "Flange"]) || "";
+    const sheetTdrLink = getCellValue(row, ["TDR Link", "TDRLink", "TDR"]) || "";
 
 
-    // Skip if core data or ArtNo is missing
     if (!productName || !artNo) continue;
     
-    // CONSOLIDATION CHECK: Only process unique Art. Nos. (ignoring size variants)
     if (uniqueArtNos.has(artNo)) continue;
     uniqueArtNos.add(artNo);
 
 
-    // CONSTRUCT PDF LINK
-    // We use the ArtNo to create the TDR link
-    const pdfLink = `${TDR_BASE_URL}?pid=${artNo}`;
+    const tdrLink = sheetTdrLink.trim()
+      ? sheetTdrLink.trim()
+      : `${TDR_BASE_URL}?pid=${artNo}`;
 
-    // --- Deriving Material, Connection, and Features from Product Name/Notes ---
     const nameLower = productName.toLowerCase();
     
     let material = "Unknown";
@@ -155,22 +142,25 @@ export function mapZolotoRowsToProducts(rows: Record<string, any>[]): ValveProdu
     else if (nameLower.includes("forged brass") || nameLower.includes("brass")) material = "Forged Brass";
     else if (nameLower.includes("stainless steel") || nameLower.includes("ss")) material = "Stainless Steel";
 
-    let connection = "Screwed";
+    let connection = getCellValue(row, ["Connection Type", "Connection"]) || "Screwed";
     if (nameLower.includes("flanged")) connection = "Flanged";
     else if (nameLower.includes("wafer type")) connection = "Wafer Type";
     
     let keyFeatures: string[] = [];
-    if (certFlangeRaw && certFlangeRaw !== '-') keyFeatures.push(certFlangeRaw); // Use new column data
+    if (certFlangeRaw && certFlangeRaw !== '-') keyFeatures.push(certFlangeRaw); 
 
+    const connectionTypeFromSheet = getCellValue(row, ["Connection Type", "Type"])
+    if (connectionTypeFromSheet && !["Screwed", "Flanged", "Wafer Type"].some(c => connectionTypeFromSheet.toLowerCase().includes(c.toLowerCase()))) {
+        keyFeatures.push(connectionTypeFromSheet);
+    }
+    
     const certification = keyFeatures.filter(f => 
         f.includes('Certified') || 
         f.includes('IS') || 
         f.includes('BS')
     );
     
-    // Set a unique product ID based on the Art. No. for React keys
     const id = artNo;
-
 
     products.push({
       id,
@@ -180,13 +170,11 @@ export function mapZolotoRowsToProducts(rows: Record<string, any>[]): ValveProdu
       material,
       connection,
       hsnCode,
-      // Removed sizeInches, sizeMM, price from final object
-      pdfLink, 
+      tdrLink, 
       certification,
       keyFeatures,
       stock,
       availability, 
-      // Removed imageUrl from final object
       raw: row,
     });
   }

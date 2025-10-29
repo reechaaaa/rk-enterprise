@@ -9,36 +9,23 @@ interface ProductCardProps {
   // Removed onQuickView, onToggleFavorite, isFavorite, as they are no longer used
 }
 
-const baseBadgeClasses = "text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full inline-flex items-center";
+// NOTE: baseBadgeClasses and the AvailabilityBadge component definition are removed.
+// const baseBadgeClasses = "text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full inline-flex items-center";
 const safe = (v: any) => (v === null || v === undefined ? "" : String(v));
-
-// --- MODIFIED AVAILABILITY BADGE ---
-// Now only displays a badge if the product is explicitly "In Stock".
-const AvailabilityBadge: React.FC<{ availability?: string }> = ({ availability }) => {
-    const v = (availability || "").toString().toLowerCase();
-
-    // Check for In Stock (based on "in" being present)
-    if (v.includes("in"))
-        return (<span className={`bg-green-100 text-green-800 ${baseBadgeClasses}`}><CheckCircle className="w-3 h-3 mr-1" />In Stock</span>);
-    
-    // Returns null (no badge) if not explicitly 'In Stock'
-    return null;
-};
-// -------------------------------------
 
 // Highlight function (kept simplified)
 function highlight(text: string, query?: string) { 
-    if (!query) return text;
-    const q = query.trim();
-    if (!q) return text;
-    const parts = text.split(new RegExp(`(${q})`, "ig"));
-    return parts.map((part, i) =>
-        part.toLowerCase() === q.toLowerCase() ? (
-            <mark key={i} className="bg-yellow-200 rounded-sm px-0.5">{part}</mark>
-        ) : (
-            part
-        ),
-    );
+  if (!query) return text;
+  const q = query.trim();
+  if (!q) return text;
+  const parts = text.split(new RegExp(`(${escapeRegExp(q)})`, "ig"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === q.toLowerCase() ? (
+      <mark key={i} className="bg-yellow-200 rounded-sm px-0.5">{part}</mark>
+    ) : (
+      part
+    ),
+  );
 } 
 function escapeRegExp(string: string) { return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 
@@ -73,15 +60,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </p>
               </div>
 
-              {/* HSN CODE (Primary Detail) */}
+              {/* HSN CODE (Primary Detail) - Removed AvailabilityBadge from here */}
               <div className="flex flex-col items-end space-y-2 flex-shrink-0">
                 {product.hsnCode && (
                     <span className="text-sm text-slate-600 font-semibold px-3 py-2">
                         HSN: {product.hsnCode}
                     </span>
                 )}
-                {/* Badge now only appears if In Stock */}
-                <AvailabilityBadge availability={product.availability} /> 
               </div>
             </div>
 
@@ -92,16 +77,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   {product.connection}
                 </span>
               )}
-              {/* Removed HSN Code chip here */}
-               {product.artNo && (
+              {product.artNo && (
                 <span className="text-xs bg-slate-100 px-2 py-1 rounded">
                   Art. No: {product.artNo}
                 </span>
               )}
-               {product.certification.length > 0 && product.certification[0] !== '-' && (
+              {product.certification.length > 0 && product.certification[0] !== '-' && (
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                   {product.certification[0]}
                 </span>
+              )}
+              
+              {/* TDR Download Button for List View */}
+              {product.tdrLink && (
+                  <a 
+                    href={product.tdrLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-xs font-semibold bg-primary text-white px-2 py-1 rounded transition-colors hover:bg-primary/90"
+                    title="Download Technical Data Record (TDR)"
+                  >
+                    <Download className="w-3 h-3 mr-1" /> TDR
+                  </a>
               )}
             </div>
           </div>
@@ -139,17 +136,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex items-center justify-between mt-4">
           {/* HSN CODE (Primary Detail) */}
           <span className="text-sm text-slate-600 font-semibold">
-             HSN: {product.hsnCode}
+              HSN: {product.hsnCode}
           </span>
           
           <div className="flex flex-col items-end space-y-1">
-             {/* Badge now only appears if In Stock */}
-             <AvailabilityBadge availability={product.availability} />
-             {product.artNo && (
-                <span className="text-xs text-slate-500">Art. No: {product.artNo}</span>
-             )}
+              {/* Removed AvailabilityBadge from here */}
+              {product.artNo && (
+                 <span className="text-xs text-slate-500">Art. No: {product.artNo}</span>
+              )}
           </div>
         </div>
+        
+        {/* TDR Download Button for Grid View */}
+        {product.tdrLink && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <a 
+              href={product.tdrLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center text-sm font-semibold bg-primary text-white py-2 rounded-lg transition-colors hover:bg-primary/90"
+              title="Download Technical Data Record (TDR)"
+            >
+              <Download className="w-4 h-4 mr-2" /> Download TDR
+            </a>
+          </div>
+        )}
       </div>
     </article>
   );

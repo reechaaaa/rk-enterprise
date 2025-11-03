@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react"; // Added ChevronDown
 import logo from "/logo.png";
 
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Changed to DropdownMenu
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -57,63 +55,39 @@ const Header = () => {
               About Us
             </button>
 
-            {/* Products Dropdown */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  {/* 🔧 FIXED PRODUCTS BUTTON */}
-                  <NavigationMenuTrigger
-                    className="text-sm font-medium bg-transparent text-foreground 
-                               hover:bg-transparent hover:text-foreground 
-                               focus:bg-transparent focus:text-foreground 
-                               active:bg-transparent active:text-foreground 
-                               focus:outline-none focus:ring-0 active:outline-none 
-                               shadow-none transition-none"
-                  >
-                    Products
-                  </NavigationMenuTrigger>
-
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 bg-card">
-                      {[
-                        {
-                          title: "ZOLOTO",
-                         
-                        },
-                        {
-                          title: "Leader",
-                        },
-                        {
-                          title: "Industrial Hardware",
-                          
-                        },
-                      ].map((item) => (
-                        <li key={item.title}>
-                          <NavigationMenuLink asChild>
-                            <button
-                              onClick={() => scrollToSection("products")}
-                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none 
-                                        transition-colors bg-transparent 
-                                        hover:bg-transparent hover:text-foreground 
-                                        focus:bg-transparent focus:text-foreground 
-                                        focus:outline-none focus:ring-0 active:outline-none w-full text-left shadow-none"
->
-
-                              <div className="text-sm font-medium leading-none">
-                                {item.title}
-                              </div>
-                              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                                
-                              </p>
-                            </button>
-                          </NavigationMenuLink>
-                        </li>
-                      ))}
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {/* --- Products Dropdown (Changed to Click) --- */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary transition-colors focus:outline-none focus:ring-0 active:outline-none">
+                  Products
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[400px] bg-card p-2">
+                {[
+                  { title: "ZOLOTO" },
+                  { title: "Leader" },
+                  { title: "Industrial Hardware" },
+                ].map((item) => (
+                  <DropdownMenuItem key={item.title} asChild>
+                    <button
+                      onClick={() => scrollToSection("products")}
+                      className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none 
+                                 transition-colors 
+                                 hover:bg-accent hover:text-accent-foreground
+                                 focus:bg-accent focus:text-accent-foreground
+                                 focus:outline-none focus:ring-0 active:outline-none w-full text-left shadow-none"
+                    >
+                      <div className="text-sm font-medium leading-none">
+                        {item.title}
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground"></p>
+                    </button>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* --- End Dropdown --- */}
 
             <button
               onClick={() => scrollToSection("services")}
@@ -163,7 +137,7 @@ const Header = () => {
               <div className="text-sm font-medium text-muted-foreground mb-2">
                 Products
               </div>
-              {["Pipes and Fittings", "Valves", "Industrial Hardware"].map(
+              {["ZOLOTO", "Leader", "Industrial Hardware"].map(
                 (item) => (
                   <button
                     key={item}
@@ -196,3 +170,4 @@ const Header = () => {
 };
 
 export default Header;
+
